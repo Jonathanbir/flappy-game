@@ -212,93 +212,101 @@ const ground = {
 // 生成敵人
 const addEnemy = function () {
   const type = Math.random() < 0.5 ? "dragon" : "bird";
-  const y =
-    type === "dragon"
-      ? canvas.height - groundHeight - enemySize // dragon 在地板上
-      : 0; // bird 在上方
+  const scale = type === "dragon" ? 1.5 : 1;
 
-  enemies.push({
+  const enemy = {
     type: type,
     x: canvas.width,
-    y: y,
-    width: enemySize,
-    height: enemySize,
-    passed: false, // 用來記錄是否計分
-  });
+    baseW: 80,
+    baseH: 80,
+    scale: scale,
+    passed: false,
+  };
+
+  if (type === "dragon") {
+    enemy.baseY = canvas.height - groundHeight - enemy.baseH * scale; // 基準：貼地板
+    enemy.amplitude = 80; // 上下浮動幅度
+    enemy.frequency = 0.05; // 浮動速度
+    enemy.phase = Math.random() * Math.PI * 2; // 隨機初始角度
+  }
+
+  enemies.push(enemy);
 };
 
 // 更新與繪製敵人
 function updateAndDrawEnemies() {
   for (let i = 0; i < enemies.length; i++) {
     const e = enemies[i];
+    const drawW = e.baseW * e.scale;
+    const drawH = e.baseH * e.scale;
+    const drawX = e.x;
+    let drawY = 0;
 
-    // 繪製敵人
     if (e.type === "dragon") {
-      const scale = 1.5; // 放大倍率
-      ctx.drawImage(
-        dragonImg,
-        e.x,
-        e.y - e.height * (scale - 1), // 把 Y 座標往上移，避免掉到地板下
-        e.width * scale,
-        e.height * scale
-      );
+      drawY = e.baseY - Math.sin(e.phase + e.x * e.frequency) * e.amplitude;
+      ctx.drawImage(dragonImg, drawX, drawY, drawW, drawH);
     } else if (e.type === "bird") {
-      ctx.drawImage(birdEnemyImg, e.x, e.y, e.width, e.height);
+      drawY = 0;
+      ctx.drawImage(birdEnemyImg, drawX, drawY, drawW, drawH);
     }
 
-    // 移動
-    e.x -= 2;
+    e.x -= enemySpeed;
 
-    // 碰撞檢查
+    // 統一碰撞檢查
+    const birdLeft = bird.x;
+    const birdRight = bird.x + bird.width;
+    const birdTop = bird.y;
+    const birdBottom = bird.y + bird.height;
+
+    const eLeft = drawX;
+    const eRight = drawX + drawW;
+    const eTop = drawY;
+    const eBottom = drawY + drawH;
+
     if (
-      bird.x < e.x + e.width &&
-      bird.x + bird.width > e.x &&
-      bird.y < e.y + e.height &&
-      bird.y + bird.height > e.y
+      birdLeft < eRight &&
+      birdRight > eLeft &&
+      birdTop < eBottom &&
+      birdBottom > eTop
     ) {
-      running = false;
-      hitSound.play();
-      backgroundMusic.pause();
-      backgroundMusic.currentTime = 0;
-      console.log("Game Over!");
+      if (!document.getElementById("restartBtn")) {
+        running = false;
+        hitSound.play();
+        backgroundMusic.pause();
+        backgroundMusic.currentTime = 0;
 
-      // 建立 Restart 按鈕
-      const restartBtn = document.createElement("button");
-      restartBtn.textContent = "Restart";
-      restartBtn.style.position = "absolute";
-      restartBtn.style.left = "50%";
-      restartBtn.style.top = "50%";
-      restartBtn.style.transform = "translate(-50%, -50%)";
-      restartBtn.style.fontSize = "24px";
-      restartBtn.style.padding = "10px 20px";
-      restartBtn.style.borderRadius = "12px";
-      restartBtn.style.cursor = "pointer";
-      document.body.appendChild(restartBtn);
+        const restartBtn = document.createElement("button");
+        restartBtn.id = "restartBtn";
+        restartBtn.textContent = "Restart";
+        restartBtn.style.position = "absolute";
+        restartBtn.style.left = "50%";
+        restartBtn.style.top = "50%";
+        restartBtn.style.transform = "translate(-50%, -50%)";
+        document.body.appendChild(restartBtn);
 
-      // Restart 邏輯
-      restartBtn.addEventListener("click", function () {
-        document.body.removeChild(restartBtn);
-        score = 0;
-        enemies.length = 0;
-        bird.y = canvas.height / 2;
-        bird.speed = 0;
-        running = true;
-        addEnemy();
-        backgroundMusic.play();
-        gameLoop();
-      });
-      return;
+        restartBtn.addEventListener("click", function () {
+          document.body.removeChild(restartBtn);
+          score = 0;
+          enemies.length = 0;
+          bird.y = canvas.height / 2;
+          bird.speed = 0;
+          running = true;
+          addEnemy();
+          backgroundMusic.play();
+          gameLoop();
+        });
+      }
     }
 
     // 通過後加分
-    if (!e.passed && bird.x > e.x + e.width) {
+    if (!e.passed && bird.x > drawX + drawW) {
       e.passed = true;
       score++;
       pointSound.play();
     }
 
     // 移除離開畫面的敵人
-    if (e.x + e.width < 0) {
+    if (e.x + drawW < 0) {
       enemies.splice(i, 1);
       i--;
       addEnemy();
@@ -494,7 +502,14 @@ document.body.appendChild(helpText);
 //   requestAnimationFrame(gameLoop);
 // };
 
+setInterval(() => {
+  if (running) addEnemy();
+}, 2000);
+
 const gameLoop = function () {
+  if (enemies.length < 1) {
+    addEnemy();
+  }
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   drawBackground();
   ground.draw();
