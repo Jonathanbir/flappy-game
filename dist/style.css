@@ -6,27 +6,105 @@ body {
   justify-content: center;
 }
 
-button {
-  background: orange;
-  color: #effbe3;
-  font-weight: bold;
-  font-size: 20px;
-  padding: 5px 10px;
-  cursor: pointer;
-  font-family: "Press Start 2P", cursive, sans-serif;
-}
-button:hover {
-  background: #ff8b3d;
+body {
+  position: relative;
 }
 
-span {
+button {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 10%;
+  width: 200px;
+  height: 200px;
+  background-size: 100%;
+  font-weight: bold;
+  font-size: 20px;
+  padding: 5px 10px;
+  transform: "translate(-50%, -50%)";
+  cursor: pointer;
+  border: none;
+  background-color: transparent;
+  border-radius: 100%;
+  margin: auto;
+  transition: all 1s ease-in-out;
+}
+
+.play-btn {
+  background-image: url(../src/images/start-btn.png);
+  border: 3px solid #4aa3f0; /* 淡藍色邊框 */
+  border-radius: 50%; /* 變成圓形 */
+  background-color: #000; /* 裡面顏色（可改成透明） */
+  box-shadow: 0 0 15px rgba(74, 163, 240, 0.6); /* 淡藍色外光暈 */
+}
+
+button:hover {
+  margin-top: 20px;
+  width: 220px;
+  height: 220px;
+}
+
+.restart-button:hover {
+  margin-top: 20px;
+  width: 220px;
+  height: 220px;
+}
+
+.score-container {
+  position: absolute;
+  top: 17%;
+  left: 6%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  width: 150px;
+  height: 150px;
+}
+
+.distance-content,
+.points-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.distance-img {
+  width: 100px;
+  height: 20px;
+  background-image: url(../src/images/distance.png);
+  background-size: 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.points-img {
+  width: 100px;
+  height: 20px;
+  background-image: url(../src/images/points.png);
+  background-size: 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.distance-points {
   color: #effbe3;
   font-weight: bold;
   font-size: 20px;
   padding: 5px 10px;
-  cursor: pointer;
+  text-align: center;
   text-shadow: -2px 0 black, 0 2px black, 2px 0 black, 0 -2px black;
-  font-family: "Press Start 2P", cursive, sans-serif;
+  cursor: pointer;
+}
+
+.score-points {
+  color: #effbe3;
+  font-weight: bold;
+  font-size: 20px;
+  padding: 5px 10px;
+  text-align: center;
+  text-shadow: -2px 0 black, 0 2px black, 2px 0 black, 0 -2px black;
+  cursor: pointer;
 }
 
 p {
@@ -40,4 +118,81 @@ p {
 
 #canvas {
   border: 1px solid black;
+}
+
+.monster-img {
+  position: absolute;
+  top: 16%;
+  left: 0;
+  right: 0;
+  width: 450px;
+  height: 450px;
+  margin: auto;
+  background-image: url(../src/images/monster2.png);
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.information-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  position: absolute;
+  bottom: 4vw;
+  z-index: 99;
+  width: 80%;
+  height: 400px;
+  background-color: rgba(0, 0, 0, 0.8);
+  border-radius: 10px;
+}
+
+.title-img {
+  width: 250px;
+  height: 50px;
+  background-image: url(../src/images/fail.png);
+  background-size: 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.inform-text {
+  color: #fff;
+  font-size: 30px;
+}
+
+.video-img {
+  width: 230px;
+  height: 100px;
+  margin: 10px auto;
+  background-image: url(../src/images/see-video.png);
+  background-size: 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.restart-btn {
+  position: relative;
+  z-index: 9999;
+  font-size: 20px;
+  margin-top: 5%;
+  color: #fff;
+  cursor: pointer;
+}
+
+.restart-btn::before {
+  content: "";
+  position: absolute;
+  top: -30%;
+  left: -30%;
+  width: 160%;
+  height: 160%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.8) 0%,
+    transparent 70%
+  );
+  filter: blur(20px);
+  z-index: 0;
 }

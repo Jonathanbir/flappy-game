@@ -17,10 +17,11 @@ const minGap = 210;
 const maxGap = 300;
 const pipeGap = Math.floor(Math.random() * (maxGap - minGap + 1) + minGap);
 let score = 0;
+let distances = 0;
 let running = false;
 
 // Set canvas size
-canvas.width = 320;
+canvas.width = 260;
 canvas.height = 480;
 
 const birdImg1 = new Image();
@@ -75,20 +76,51 @@ const drawBackground = function () {
   }
 };
 
-const scoreElement = document.createElement("span");
-scoreElement.textContent = 0;
-scoreElement.style.position = "absolute";
-scoreElement.style.left = "50%";
-scoreElement.style.top = "35px";
-scoreElement.style.transform = "translate(-50%, -50%)";
-document.body.appendChild(scoreElement);
+const scoreContainer = document.createElement("div");
+scoreContainer.classList.add("score-container");
+scoreContainer.innerHTML = `
+  <div class="distance-content">
+    <div class="distance-img"></div>
+    <div class="distance-points"></div>
+  </div>
+  <div class="points-content">
+    <div class="points-img"></div>
+    <div class="score-points"></div>
+  </div>
+`;
+
+document.body.appendChild(scoreContainer);
+
+const distanceElement = document.getElementsByClassName("distance-points")[0];
+const scoreElement = document.getElementsByClassName("score-points")[0];
+
+// 創建初始背景圖
+const startBg = document.createElement("img");
+startBg.src = "../src/images/background-first.png"; // 初始畫面圖片
+startBg.style.position = "absolute";
+startBg.style.left = "50%";
+startBg.style.top = "0";
+startBg.style.transform = "translateX(-50%)";
+startBg.style.width = "429px"; // 可調整尺寸
+startBg.style.height = "789px";
+startBg.style.border = "1px solid #000";
+document.body.appendChild(startBg);
+
+const titleImg = document.createElement("img");
+titleImg.src = "../src/images/title.png"; // 替換成你的圖片路徑
+titleImg.style.position = "absolute"; // 絕對定位
+titleImg.style.left = "50%"; // 水平置中
+titleImg.style.marginTop = "1vw"; // 距離上方 10vw
+titleImg.style.transform = "translateX(-50%)"; // 將圖片中心對齊 canvas 中心
+
+document.body.appendChild(titleImg);
 
 // Create the bird object
 const bird = {
   x: 50,
   y: canvas.height / 2,
-  width: 80,
-  height: 100,
+  width: 40,
+  height: 40,
   speed: 0,
   gravity: birdGravity,
   jump: birdJump,
@@ -138,6 +170,16 @@ const bird = {
         );
       }
 
+      // 畫鳥的碰撞圓
+      const birdCx = 0; // 因為已經 translate 到鳥中心
+      const birdCy = 0;
+      const birdR = this.width * 0.35; // 你剛剛的設定
+
+      // ctx.beginPath();
+      // ctx.arc(birdCx, birdCy, birdR, 0, Math.PI * 2);
+      // ctx.strokeStyle = "red";
+      ctx.lineWidth = 2;
+      ctx.stroke();
       ctx.restore();
     }
     // Rotate the bird down when it goes down
@@ -228,10 +270,22 @@ const addEnemy = function () {
     enemy.amplitude = 80; // 上下浮動幅度
     enemy.frequency = 0.05; // 浮動速度
     enemy.phase = Math.random() * Math.PI * 2; // 隨機初始角度
+  } else if (type === "bird") {
+    // 隨機高度：避免跟地面重疊，也不要太靠上
+    const minY = 50;
+    const maxY = canvas.height - groundHeight - enemy.baseH * scale - 50;
+    enemy.baseY = Math.floor(Math.random() * (maxY - minY + 1) + minY);
   }
 
   enemies.push(enemy);
 };
+
+function isCollidingCircle(ax, ay, ar, bx, by, br) {
+  const dx = ax - bx;
+  const dy = ay - by;
+  const distance = Math.sqrt(dx * dx + dy * dy);
+  return distance < ar + br;
+}
 
 // 更新與繪製敵人
 function updateAndDrawEnemies() {
@@ -243,49 +297,96 @@ function updateAndDrawEnemies() {
     let drawY = 0;
 
     if (e.type === "dragon") {
-      drawY = e.baseY - Math.sin(e.phase + e.x * e.frequency) * e.amplitude;
+      // drawY = e.baseY - Math.sin(e.phase + e.x * e.frequency) * e.amplitude;
+      drawY = e.baseY;
       ctx.drawImage(dragonImg, drawX, drawY, drawW, drawH);
+
+      const eCx = drawX + drawW / 2;
+      const eCy = drawY + drawH / 2;
+      const eR = drawW * 0.4; // 你剛剛設的 enemy 半徑比例
+
+      // ctx.beginPath();
+      // ctx.arc(eCx, eCy, eR, 0, Math.PI * 2);
+      // ctx.strokeStyle = "red";
+      ctx.lineWidth = 2;
+      ctx.stroke();
     } else if (e.type === "bird") {
-      drawY = 0;
-      ctx.drawImage(birdEnemyImg, drawX, drawY, drawW, drawH);
+      drawY = e.baseY;
+      ctx.drawImage(birdEnemyImg, drawX, drawY, drawW, drawH); // 畫紅框
+
+      const eCx = drawX + drawW / 2;
+      const eCy = drawY + drawH / 2;
+      const eR = drawW * 0.4; // 你剛剛設的 enemy 半徑比例
+
+      // ctx.beginPath();
+      // ctx.arc(eCx, eCy, eR, 0, Math.PI * 2);
+      // ctx.strokeStyle = "red";
+      ctx.lineWidth = 2;
+      ctx.stroke();
     }
+
+    // 計算鳥的 hitbox 圓心和半徑
+    const birdCx = bird.x + bird.width / 2;
+    const birdCy = bird.y + bird.height / 2;
+    const birdR = Math.min(bird.width, bird.height) * 0.35;
+
+    // 計算敵人的 hitbox 圓心和半徑
+    const enemyCx = drawX + drawW / 2;
+    const enemyCy = drawY + drawH / 2;
+    const enemyR = Math.min(drawW, drawH) * 0.4;
 
     e.x -= enemySpeed;
 
     // 統一碰撞檢查
-    const birdLeft = bird.x;
-    const birdRight = bird.x + bird.width;
-    const birdTop = bird.y;
-    const birdBottom = bird.y + bird.height;
+    const birdLeft = bird.x + bird.width * 0.2;
+    const birdRight = bird.x + bird.width * 0.8;
+    const birdTop = bird.y + bird.height * 0.2;
+    const birdBottom = bird.y + bird.height * 0.8;
 
     const eLeft = drawX;
     const eRight = drawX + drawW;
     const eTop = drawY;
     const eBottom = drawY + drawH;
 
-    if (
-      birdLeft < eRight &&
-      birdRight > eLeft &&
-      birdTop < eBottom &&
-      birdBottom > eTop
-    ) {
+    if (isCollidingCircle(birdCx, birdCy, birdR, enemyCx, enemyCy, enemyR)) {
       if (!document.getElementById("restartBtn")) {
         running = false;
         hitSound.play();
         backgroundMusic.pause();
         backgroundMusic.currentTime = 0;
+        scoreContainer.style.display = "none";
 
-        const restartBtn = document.createElement("button");
-        restartBtn.id = "restartBtn";
-        restartBtn.textContent = "Restart";
-        restartBtn.style.position = "absolute";
-        restartBtn.style.left = "50%";
-        restartBtn.style.top = "50%";
-        restartBtn.style.transform = "translate(-50%, -50%)";
-        document.body.appendChild(restartBtn);
+        const monsterImg = document.createElement("div");
+        monsterImg.className = "monster-img";
+        document.body.appendChild(monsterImg);
 
+        const informationContainer = document.createElement("div");
+        informationContainer.classList.add("information-container");
+        informationContainer.innerHTML = `
+          <div class="title-img"></div>
+          <div class="final-score-content">
+            <div class="inform-text" id="score-total"></div>
+            <div class="inform-text" id="score-percentage"></div>
+          </div>
+          <div class="video-img"></div>
+          <div class="restart-btn" id="restartBtn">再玩一次</div>
+        `;
+
+        document.body.appendChild(informationContainer);
+
+        const scoreTotal = document.getElementById("score-total");
+
+        const scorePercentage = document.getElementById("score-percentage");
+
+        scoreTotal.textContent = "總分：" + score;
+        scorePercentage.textContent = "達成率：" + score + "%";
+
+        const restartBtn = document.getElementById("restartBtn");
+        console.log("score:", score);
         restartBtn.addEventListener("click", function () {
-          document.body.removeChild(restartBtn);
+          document.body.removeChild(monsterImg);
+          document.body.removeChild(informationContainer);
+          scoreContainer.style.display = "block";
           score = 0;
           enemies.length = 0;
           bird.y = canvas.height / 2;
@@ -344,14 +445,11 @@ document.addEventListener("keydown", function (event) {
 });
 
 const playBtn = document.createElement("button");
-playBtn.innerText = "Play";
-playBtn.style.position = "absolute";
-playBtn.style.left = "50%";
-playBtn.style.top = "50%";
-playBtn.style.transform = "translate(-50%, -50%)";
+playBtn.className = "play-btn";
 playBtn.addEventListener("click", function () {
   document.body.removeChild(playBtn);
-  document.body.removeChild(helpText);
+  // document.body.removeChild(helpText);
+  startBg.style.display = "none";
   running = true;
   // Set game variables
   score = 0;
@@ -365,142 +463,14 @@ playBtn.addEventListener("click", function () {
 
 document.body.appendChild(playBtn);
 
-const helpText = document.createElement("p");
-helpText.innerHTML =
-  "TAP to jump on Mobile <br /><br /> SPACEBAR to jump on Destop";
-helpText.style.position = "absolute";
-helpText.style.left = "50%";
-helpText.style.top = "75%";
-helpText.style.transform = "translate(-50%, -50%)";
-document.body.appendChild(helpText);
-
-// The game loop
-// const gameLoop = function () {
-//   ctx.clearRect(0, 0, canvas.width, canvas.height);
-//   ground.draw();
-//   drawBackground();
-
-//   if (!running) return;
-
-//   bird.update();
-//   bird.draw();
-
-//   // Draw and update pipes
-//   for (let i = 0; i < pipes.length; i++) {
-//     // ctx.fillStyle = ctx.createPattern(pipesBackgroundImg, "repeat");
-//     ctx.fillRect(pipes[i].x, 0, pipes[i].width, pipes[i].y);
-//     ctx.fillRect(
-//       pipes[i].x,
-//       pipes[i].y + pipeGap,
-//       pipes[i].width,
-//       canvas.height - pipes[i].y - pipeGap
-//     );
-
-//     // Top pipe
-//     ctx.beginPath();
-//     ctx.strokeStyle = "#618842";
-//     ctx.lineWidth = 4;
-//     ctx.moveTo(pipes[i].x, pipes[i].y);
-//     ctx.lineTo(pipes[i].x + pipes[i].width, pipes[i].y);
-//     ctx.stroke();
-//     ctx.drawImage(
-//       pipesBackgroundImg,
-//       pipes[i].x,
-//       0,
-//       pipes[i].width,
-//       pipes[i].y
-//     );
-
-//     // Bottom pipe
-//     ctx.beginPath();
-//     ctx.strokeStyle = "#618842";
-//     ctx.lineWidth = 4;
-//     ctx.moveTo(pipes[i].x, pipes[i].y + pipeGap);
-//     ctx.lineTo(pipes[i].x + pipes[i].width, pipes[i].y + pipeGap);
-//     ctx.stroke();
-//     ctx.drawImage(
-//       pipesBackgroundImg,
-//       pipes[i].x,
-//       pipes[i].y + pipeGap,
-//       pipes[i].width,
-//       canvas.height - pipes[i].y - pipeGap - groundHeight
-//     );
-
-//     pipes[i].x -= 1;
-
-//     // if game over / Check for collisions
-//     if (
-//       bird.x < pipes[i].x + pipes[i].width &&
-//       bird.x + bird.width > pipes[i].x &&
-//       (bird.y < pipes[i].y || bird.y + bird.height > pipes[i].y + pipeGap)
-//     ) {
-//       running = false;
-
-//       hitSound.play();
-
-//       ground.draw();
-
-//       backgroundMusic.pause();
-//       backgroundMusic.currentTime = 0;
-
-//       console.log("Game Over!");
-
-//       const replayBtn = document.createElement("button");
-
-//       replayBtn.innerText = "Replay";
-//       replayBtn.style.position = "absolute";
-//       replayBtn.style.left = "50%";
-//       replayBtn.style.top = "50%";
-//       replayBtn.style.transform = "translate(-50%, -50%)";
-//       replayBtn.addEventListener("click", function () {
-//         document.body.removeChild(replayBtn);
-//         running = true;
-//         // Reset game variables to their initial values
-//         score = 0;
-//         pipes.length = 0;
-//         addPipe();
-//         gameLoop();
-
-//         backgroundMusic.loop = true;
-//         backgroundMusic.play();
-//       });
-
-//       document.body.appendChild(replayBtn);
-
-//       return;
-//     }
-
-//     // Check if bird has passed the pipe and add point to score
-//     if (bird.x > pipes[i].x + pipes[i].width && !pipes[i].passed) {
-//       pipes[i].passed = true;
-//       pointSound.play();
-//       score++;
-//     }
-
-//     // Add a new pipe when the current pipe has moved off the screen
-//     if (pipes[i].x + pipes[i].width < 0) {
-//       pipes.splice(i, 1);
-//       i--;
-//       addPipe();
-//     }
-//   }
-
-//   ground.update();
-//   ground.draw();
-
-//   scoreElement.textContent = score;
-
-//   // Keep the bird within the bounds of the canvas
-//   if (bird.y + bird.height > canvas.height - groundHeight) {
-//     bird.y = canvas.height - groundHeight - bird.height;
-//     bird.speed = 0;
-//   } else if (bird.y < 0) {
-//     bird.y = 0;
-//     bird.speed = 0;
-//   }
-
-//   requestAnimationFrame(gameLoop);
-// };
+// const helpText = document.createElement("p");
+// helpText.innerHTML =
+//   "手機請點擊螢幕讓主角跳躍<br /><br />電腦請點擊空白鍵或滑鼠左鍵";
+// helpText.style.position = "absolute";
+// helpText.style.left = "50%";
+// helpText.style.top = "75%";
+// helpText.style.transform = "translate(-50%, -50%)";
+// document.body.appendChild(helpText);
 
 setInterval(() => {
   if (running) addEnemy();
@@ -525,6 +495,8 @@ const gameLoop = function () {
   ground.update();
   ground.draw();
 
+  distances = (score * Math.random() * 10).toFixed(1) + " M";
+  distanceElement.textContent = distances;
   scoreElement.textContent = score;
 
   // 邊界處理
