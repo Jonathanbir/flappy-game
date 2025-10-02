@@ -10,6 +10,13 @@ body {
   position: relative;
 }
 
+.title-head-img {
+  position: absolute;
+  left: 50%;
+  margin-top: 1vw;
+  transform: translateX(-50%);
+}
+
 button {
   position: absolute;
   left: 0;
@@ -195,4 +202,74 @@ p {
   );
   filter: blur(20px);
   z-index: 0;
+}
+
+@media only screen and (min-width: 480px) and (max-width: 768px) {
+  button {
+    width: 30vw;
+    height: 30vw;
+  }
+
+  .title-head-img {
+    margin-top: 6vw;
+  }
+
+  .monster-img {
+    top: 10%;
+    width: 70%;
+    height: 46%;
+    background-size: 100%;
+  }
+
+  .information-container {
+    bottom: 15%;
+    z-index: 99;
+    width: 70%;
+    height: 50%;
+  }
+
+  .score-container {
+    left: 10%;
+  }
+
+  .distance-img,
+  .points-img {
+    width: 300px;
+    height: 50px;
+  }
+
+  .distance-points,
+  .score-points {
+    width: 27vw;
+    font-size: 3rem;
+    padding: 2vw;
+  }
+
+  .title-img {
+    width: 50vw;
+    height: 10vw;
+    margin-bottom: 5vw;
+  }
+
+  .inform-text {
+    font-size: 5rem;
+  }
+
+  .video-img {
+    width: 50vw;
+    margin: 5vw auto;
+  }
+
+  .restart-btn {
+    font-size: 3rem;
+  }
+
+  .restart-btn::before {
+    content: "";
+    background: radial-gradient(
+      circle,
+      rgba(255, 255, 255, 0.3) 0%,
+      transparent 70%
+    );
+  }
 }

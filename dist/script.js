@@ -101,17 +101,14 @@ startBg.style.position = "absolute";
 startBg.style.left = "50%";
 startBg.style.top = "0";
 startBg.style.transform = "translateX(-50%)";
-startBg.style.width = "429px"; // 可調整尺寸
-startBg.style.height = "789px";
+startBg.style.width = "100%"; // 可調整尺寸
+startBg.style.height = "100%";
 startBg.style.border = "1px solid #000";
 document.body.appendChild(startBg);
 
 const titleImg = document.createElement("img");
+titleImg.className = "title-head-img";
 titleImg.src = "../src/images/title.png"; // 替換成你的圖片路徑
-titleImg.style.position = "absolute"; // 絕對定位
-titleImg.style.left = "50%"; // 水平置中
-titleImg.style.marginTop = "1vw"; // 距離上方 10vw
-titleImg.style.transform = "translateX(-50%)"; // 將圖片中心對齊 canvas 中心
 
 document.body.appendChild(titleImg);
 
@@ -251,8 +248,12 @@ const ground = {
   },
 };
 
+const maxEnemies = 3; // 螢幕最多同時 3 個
+
 // 生成敵人
 const addEnemy = function () {
+  if (enemies.length >= maxEnemies) return; // 超過數量就不生
+
   const type = Math.random() < 0.5 ? "dragon" : "bird";
   const scale = type === "dragon" ? 1.5 : 1;
 
@@ -272,7 +273,7 @@ const addEnemy = function () {
     enemy.phase = Math.random() * Math.PI * 2; // 隨機初始角度
   } else if (type === "bird") {
     // 隨機高度：避免跟地面重疊，也不要太靠上
-    const minY = 50;
+    const minY = 0;
     const maxY = canvas.height - groundHeight - enemy.baseH * scale - 50;
     enemy.baseY = Math.floor(Math.random() * (maxY - minY + 1) + minY);
   }
@@ -474,7 +475,7 @@ document.body.appendChild(playBtn);
 
 setInterval(() => {
   if (running) addEnemy();
-}, 2000);
+}, 4000);
 
 const gameLoop = function () {
   if (enemies.length < 1) {
