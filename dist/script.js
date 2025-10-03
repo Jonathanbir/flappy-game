@@ -11,7 +11,13 @@ const pipeWidth = 52;
 // 敵人設定
 const enemies = [];
 const enemySize = 80; // 寬高一樣
-const enemySpeed = 2;
+let enemySpeed;
+
+if (window.matchMedia("(max-width: 750px)").matches) {
+  enemySpeed = 1.3;
+} else {
+  enemySpeed = 1;
+}
 
 const minGap = 210;
 const maxGap = 300;
@@ -20,9 +26,22 @@ let score = 0;
 let distances = 0;
 let running = false;
 
-// Set canvas size
-canvas.width = 260;
-canvas.height = 480;
+function resizeCanvas() {
+  if (window.matchMedia("(max-width: 750px)").matches) {
+    // 手機 → 滿版
+    canvas.width = window.innerWidth;
+    canvas.height = canvas.clientHeight;
+  } else {
+    // 桌機 → 固定大小
+    canvas.width = 260;
+    canvas.height = 480;
+  }
+}
+// 一開始先呼叫一次
+resizeCanvas();
+
+// 視窗大小改變時也更新
+window.addEventListener("resize", resizeCanvas);
 
 const birdImg1 = new Image();
 birdImg1.src = "../src/images/monster.png";
@@ -49,13 +68,10 @@ pipesBackgroundImg.src =
   "https://assets.codepen.io/1290466/pipe-bg.jpg?format=auto";
 
 // Sounds
-const hitSound = new Audio(
-  "https://assets.codepen.io/1290466/flappy-bird-hit.mp3"
-);
-const pointSound = new Audio();
-// "https://assets.codepen.io/1290466/flappy-bird-point.mp3"
-const backgroundMusic = new Audio();
-// "https://assets.codepen.io/1290466/flappy-bird-background.mp3"
+const failSound = new Audio("../src/mp3/fail.mp3");
+const winSound = new Audio("../src/mp3/win.mp3");
+const pointSound = new Audio("../src/mp3/point.mp3");
+const backgroundMusic = new Audio("../src/mp3/background1.mp3");
 
 let bgX = 0; // 背景水平位移
 const bgSpeed = 0.5; // 背景滾動速度
@@ -112,119 +128,267 @@ titleImg.src = "../src/images/title.png"; // 替換成你的圖片路徑
 
 document.body.appendChild(titleImg);
 
+// 建立靜音按鈕
+const muteBtn = document.createElement("div");
+muteBtn.className = "mute-btn";
+// 建立 Icon (Font Awesome)
+let muteIcon = document.createElement("i");
+muteIcon.classList.add("fas", "fa-volume-up"); // 預設音量開啟
+
+// 把 icon 放進按鈕
+muteBtn.appendChild(muteIcon);
+
+document.body.appendChild(muteBtn);
+
+let isMuted = false;
+
+muteBtn.addEventListener("click", function () {
+  isMuted = !isMuted;
+
+  // 切換 icon
+  if (isMuted) {
+    muteIcon.classList.remove("fa-volume-up");
+    muteIcon.classList.add("fa-volume-mute");
+  } else {
+    muteIcon.classList.remove("fa-volume-mute");
+    muteIcon.classList.add("fa-volume-up");
+  }
+
+  // 控制所有聲音
+  backgroundMusic.muted = isMuted;
+  pointSound.muted = isMuted;
+  failSound.muted = isMuted;
+  winSound.muted = isMuted;
+});
+let bird;
 // Create the bird object
-const bird = {
-  x: 50,
-  y: canvas.height / 2,
-  width: 40,
-  height: 40,
-  speed: 0,
-  gravity: birdGravity,
-  jump: birdJump,
-  update: function () {
-    this.speed += this.gravity;
-    this.y += this.speed;
-  },
-  draw: function () {
-    // Rotate the bird up when it goes up
-    if (this.speed < 0) {
-      ctx.save();
-      ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
-      ctx.rotate(-Math.PI / 16);
+if (window.matchMedia("(max-width: 480px)").matches) {
+  bird = {
+    x: 50,
+    y: canvas.height / 2,
+    width: 120,
+    height: 120,
+    speed: 0,
+    gravity: birdGravity,
+    jump: birdJump,
+    update: function () {
+      this.speed += this.gravity * delta;
+      this.y += this.speed * delta;
+    },
+    draw: function () {
+      // Rotate the bird up when it goes up
+      if (this.speed < 0) {
+        ctx.save();
+        ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
+        ctx.rotate(-Math.PI / 16);
 
-      // bird flap animation
-      if (birdImageframe % 3 === 0) {
-        ctx.drawImage(
-          birdImg1,
-          -this.width / 2,
-          -this.height / 2,
-          this.width,
-          this.height
-        );
-      } else if (birdImageframe % 3 === 1) {
-        ctx.drawImage(
-          birdImg2,
-          -this.width / 2,
-          -this.height / 2,
-          this.width,
-          this.height
-        );
-      } else if (birdImageframe % 3 === 2) {
-        ctx.drawImage(
-          birdImg3,
-          -this.width / 2,
-          -this.height / 2,
-          this.width,
-          this.height
-        );
-      } else {
-        ctx.drawImage(
-          birdImg4,
-          -this.width / 2,
-          -this.height / 2,
-          this.width,
-          this.height
-        );
+        // bird flap animation
+        if (birdImageframe % 3 === 0) {
+          ctx.drawImage(
+            birdImg1,
+            -this.width / 2,
+            -this.height / 2,
+            this.width,
+            this.height
+          );
+        } else if (birdImageframe % 3 === 1) {
+          ctx.drawImage(
+            birdImg2,
+            -this.width / 2,
+            -this.height / 2,
+            this.width,
+            this.height
+          );
+        } else if (birdImageframe % 3 === 2) {
+          ctx.drawImage(
+            birdImg3,
+            -this.width / 2,
+            -this.height / 2,
+            this.width,
+            this.height
+          );
+        } else {
+          ctx.drawImage(
+            birdImg4,
+            -this.width / 2,
+            -this.height / 2,
+            this.width,
+            this.height
+          );
+        }
+
+        // 畫鳥的碰撞圓
+        const birdCx = 0; // 因為已經 translate 到鳥中心
+        const birdCy = 0;
+        const birdR = this.width * 0.35; // 你剛剛的設定
+
+        // ctx.beginPath();
+        // ctx.arc(birdCx, birdCy, birdR, 0, Math.PI * 2);
+        // ctx.strokeStyle = "red";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.restore();
       }
+      // Rotate the bird down when it goes down
+      else {
+        ctx.save();
+        ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
+        ctx.rotate(Math.PI / 16);
+        // ctx.drawImage(birdImg1, -this.width / 2, -this.height / 2, this.width, this.height);
 
-      // 畫鳥的碰撞圓
-      const birdCx = 0; // 因為已經 translate 到鳥中心
-      const birdCy = 0;
-      const birdR = this.width * 0.35; // 你剛剛的設定
+        // bird flap animation
+        if (birdImageframe % 3 === 0) {
+          ctx.drawImage(
+            birdImg1,
+            -this.width / 2,
+            -this.height / 2,
+            this.width,
+            this.height
+          );
+        } else if (birdImageframe % 3 === 1) {
+          ctx.drawImage(
+            birdImg2,
+            -this.width / 2,
+            -this.height / 2,
+            this.width,
+            this.height
+          );
+        } else if (birdImageframe % 3 === 2) {
+          ctx.drawImage(
+            birdImg3,
+            -this.width / 2,
+            -this.height / 2,
+            this.width,
+            this.height
+          );
+        } else {
+          ctx.drawImage(
+            birdImg4,
+            -this.width / 2,
+            -this.height / 2,
+            this.width,
+            this.height
+          );
+        }
 
-      // ctx.beginPath();
-      // ctx.arc(birdCx, birdCy, birdR, 0, Math.PI * 2);
-      // ctx.strokeStyle = "red";
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      ctx.restore();
-    }
-    // Rotate the bird down when it goes down
-    else {
-      ctx.save();
-      ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
-      ctx.rotate(Math.PI / 16);
-      // ctx.drawImage(birdImg1, -this.width / 2, -this.height / 2, this.width, this.height);
-
-      // bird flap animation
-      if (birdImageframe % 3 === 0) {
-        ctx.drawImage(
-          birdImg1,
-          -this.width / 2,
-          -this.height / 2,
-          this.width,
-          this.height
-        );
-      } else if (birdImageframe % 3 === 1) {
-        ctx.drawImage(
-          birdImg2,
-          -this.width / 2,
-          -this.height / 2,
-          this.width,
-          this.height
-        );
-      } else if (birdImageframe % 3 === 2) {
-        ctx.drawImage(
-          birdImg3,
-          -this.width / 2,
-          -this.height / 2,
-          this.width,
-          this.height
-        );
-      } else {
-        ctx.drawImage(
-          birdImg4,
-          -this.width / 2,
-          -this.height / 2,
-          this.width,
-          this.height
-        );
+        ctx.restore();
       }
+    },
+  };
+} else {
+  bird = {
+    x: 50,
+    y: canvas.height / 2,
+    width: 40,
+    height: 40,
+    speed: 0,
+    gravity: birdGravity,
+    jump: birdJump,
+    update: function () {
+      this.speed += this.gravity * delta;
+      this.y += this.speed * delta;
+    },
+    draw: function () {
+      // Rotate the bird up when it goes up
+      if (this.speed < 0) {
+        ctx.save();
+        ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
+        ctx.rotate(-Math.PI / 16);
 
-      ctx.restore();
-    }
-  },
-};
+        // bird flap animation
+        if (birdImageframe % 3 === 0) {
+          ctx.drawImage(
+            birdImg1,
+            -this.width / 2,
+            -this.height / 2,
+            this.width,
+            this.height
+          );
+        } else if (birdImageframe % 3 === 1) {
+          ctx.drawImage(
+            birdImg2,
+            -this.width / 2,
+            -this.height / 2,
+            this.width,
+            this.height
+          );
+        } else if (birdImageframe % 3 === 2) {
+          ctx.drawImage(
+            birdImg3,
+            -this.width / 2,
+            -this.height / 2,
+            this.width,
+            this.height
+          );
+        } else {
+          ctx.drawImage(
+            birdImg4,
+            -this.width / 2,
+            -this.height / 2,
+            this.width,
+            this.height
+          );
+        }
+
+        // 畫鳥的碰撞圓
+        const birdCx = 0; // 因為已經 translate 到鳥中心
+        const birdCy = 0;
+        const birdR = this.width * 0.35; // 你剛剛的設定
+
+        // ctx.beginPath();
+        // ctx.arc(birdCx, birdCy, birdR, 0, Math.PI * 2);
+        // ctx.strokeStyle = "red";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.restore();
+      }
+      // Rotate the bird down when it goes down
+      else {
+        ctx.save();
+        ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
+        ctx.rotate(Math.PI / 16);
+        // ctx.drawImage(birdImg1, -this.width / 2, -this.height / 2, this.width, this.height);
+
+        // bird flap animation
+        if (birdImageframe % 3 === 0) {
+          ctx.drawImage(
+            birdImg1,
+            -this.width / 2,
+            -this.height / 2,
+            this.width,
+            this.height
+          );
+        } else if (birdImageframe % 3 === 1) {
+          ctx.drawImage(
+            birdImg2,
+            -this.width / 2,
+            -this.height / 2,
+            this.width,
+            this.height
+          );
+        } else if (birdImageframe % 3 === 2) {
+          ctx.drawImage(
+            birdImg3,
+            -this.width / 2,
+            -this.height / 2,
+            this.width,
+            this.height
+          );
+        } else {
+          ctx.drawImage(
+            birdImg4,
+            -this.width / 2,
+            -this.height / 2,
+            this.width,
+            this.height
+          );
+        }
+
+        ctx.restore();
+      }
+    },
+  };
+}
 
 const ground = {
   x: 0,
@@ -233,7 +397,7 @@ const ground = {
   height: groundHeight,
   speed: 1,
   update: function () {
-    this.x -= this.speed;
+    this.x -= this.speed * delta;
     if (this.x <= -this.width) this.x = 0;
   },
   draw: function () {
@@ -257,25 +421,51 @@ const addEnemy = function () {
   const type = Math.random() < 0.5 ? "dragon" : "bird";
   const scale = type === "dragon" ? 1.5 : 1;
 
-  const enemy = {
-    type: type,
-    x: canvas.width,
-    baseW: 80,
-    baseH: 80,
-    scale: scale,
-    passed: false,
-  };
+  let enemy;
+  if (window.matchMedia("(max-width: 480px)").matches) {
+    enemy = {
+      type: type,
+      x: canvas.width,
+      baseW: 150,
+      baseH: 150,
+      scale: scale,
+      passed: false,
+    };
+  } else {
+    enemy = {
+      type: type,
+      x: canvas.width,
+      baseW: 80,
+      baseH: 80,
+      scale: scale,
+      passed: false,
+    };
+  }
 
   if (type === "dragon") {
     enemy.baseY = canvas.height - groundHeight - enemy.baseH * scale; // 基準：貼地板
-    enemy.amplitude = 80; // 上下浮動幅度
-    enemy.frequency = 0.05; // 浮動速度
-    enemy.phase = Math.random() * Math.PI * 2; // 隨機初始角度
   } else if (type === "bird") {
     // 隨機高度：避免跟地面重疊，也不要太靠上
     const minY = 0;
     const maxY = canvas.height - groundHeight - enemy.baseH * scale - 50;
     enemy.baseY = Math.floor(Math.random() * (maxY - minY + 1) + minY);
+  }
+
+  // 🔥 檢查是否跟其他敵人重疊
+  let overlapped = false;
+  for (let i = 0; i < enemies.length; i++) {
+    const e = enemies[i];
+    const existingTop = e.baseY;
+    const existingBottom = e.baseY + e.baseH * e.scale;
+
+    const newTop = enemy.baseY;
+    const newBottom = enemy.baseY + enemy.baseH * enemy.scale;
+
+    // 如果上下範圍重疊太多，就算重疊
+    if (!(newBottom < existingTop - 20 || newTop > existingBottom + 20)) {
+      overlapped = true;
+      break;
+    }
   }
 
   enemies.push(enemy);
@@ -338,21 +528,10 @@ function updateAndDrawEnemies() {
 
     e.x -= enemySpeed;
 
-    // 統一碰撞檢查
-    const birdLeft = bird.x + bird.width * 0.2;
-    const birdRight = bird.x + bird.width * 0.8;
-    const birdTop = bird.y + bird.height * 0.2;
-    const birdBottom = bird.y + bird.height * 0.8;
-
-    const eLeft = drawX;
-    const eRight = drawX + drawW;
-    const eTop = drawY;
-    const eBottom = drawY + drawH;
-
-    if (isCollidingCircle(birdCx, birdCy, birdR, enemyCx, enemyCy, enemyR)) {
+    if (score == 100) {
       if (!document.getElementById("restartBtn")) {
         running = false;
-        hitSound.play();
+        winSound.play();
         backgroundMusic.pause();
         backgroundMusic.currentTime = 0;
         scoreContainer.style.display = "none";
@@ -364,29 +543,99 @@ function updateAndDrawEnemies() {
         const informationContainer = document.createElement("div");
         informationContainer.classList.add("information-container");
         informationContainer.innerHTML = `
-          <div class="title-img"></div>
+          <div class="title-img succes-img"></div>
           <div class="final-score-content">
             <div class="inform-text" id="score-total"></div>
             <div class="inform-text" id="score-percentage"></div>
           </div>
-          <div class="video-img"></div>
+          <a class="video-img" href="https://www.youtube.com/watch?v=3DlIfk11tUI" target="_blank"></a>
           <div class="restart-btn" id="restartBtn">再玩一次</div>
         `;
 
         document.body.appendChild(informationContainer);
+
+        const shareContainer = document.createElement("div");
+        shareContainer.classList.add("share-container");
+        shareContainer.innerHTML = `
+            <a class="share-item" href="#">分享給好友</a>
+            <a class="share-item" href="https://www.miramarcinemas.tw/Movie/detail?id=46231817-6f9e-4c8d-affe-d66c7643a7d2&type=coming" target="_blink">觀看時刻表</a>
+        `;
+
+        document.body.appendChild(shareContainer);
 
         const scoreTotal = document.getElementById("score-total");
 
         const scorePercentage = document.getElementById("score-percentage");
 
         scoreTotal.textContent = "總分：" + score;
-        scorePercentage.textContent = "達成率：" + score + "%";
+        scorePercentage.textContent = "終點距離：" + distances;
 
+        const restartBtn = document.getElementById("restartBtn");
+
+        restartBtn.addEventListener("click", function () {
+          document.body.removeChild(monsterImg);
+          document.body.removeChild(informationContainer);
+          scoreContainer.style.display = "block";
+          score = 0;
+          enemies.length = 0;
+          bird.y = canvas.height / 2;
+          bird.speed = 0;
+          running = true;
+          addEnemy();
+          backgroundMusic.play();
+          gameLoop();
+        });
+      }
+    }
+
+    if (isCollidingCircle(birdCx, birdCy, birdR, enemyCx, enemyCy, enemyR)) {
+      if (!document.getElementById("restartBtn")) {
+        running = false;
+        failSound.play();
+        backgroundMusic.pause();
+        backgroundMusic.currentTime = 0;
+        scoreContainer.style.display = "none";
+
+        const monsterImg = document.createElement("div");
+        monsterImg.className = "monster-img";
+        document.body.appendChild(monsterImg);
+
+        const informationContainer = document.createElement("div");
+        informationContainer.classList.add("information-container");
+        informationContainer.innerHTML = `
+          <div class="title-img fail-img"></div>
+          <div class="final-score-content">
+            <div class="inform-text" id="score-total"></div>
+            <div class="inform-text" id="score-percentage"></div>
+          </div>
+          <a class="video-img" href="https://www.youtube.com/watch?v=3DlIfk11tUI" target="_blank"></a>
+          <div class="restart-btn" id="restartBtn">再玩一次</div>
+        `;
+
+        document.body.appendChild(informationContainer);
+
+        const shareContainer = document.createElement("div");
+        shareContainer.classList.add("share-container");
+        shareContainer.innerHTML = `
+            <a class="share-item" href="#">分享給好友</a>
+            <a class="share-item" href="https://www.miramarcinemas.tw/Movie/detail?id=46231817-6f9e-4c8d-affe-d66c7643a7d2&type=coming" target="_blink">觀看時刻表</a>
+        `;
+
+        document.body.appendChild(shareContainer);
+
+        const scoreTotal = document.getElementById("score-total");
+
+        const scorePercentage = document.getElementById("score-percentage");
+
+        scoreTotal.textContent = "總分：" + score;
+        scorePercentage.textContent = "終點距離：" + distances;
+        console.log("distances:", distances);
         const restartBtn = document.getElementById("restartBtn");
         console.log("score:", score);
         restartBtn.addEventListener("click", function () {
           document.body.removeChild(monsterImg);
           document.body.removeChild(informationContainer);
+          document.body.removeChild(shareContainer);
           scoreContainer.style.display = "block";
           score = 0;
           enemies.length = 0;
@@ -404,7 +653,9 @@ function updateAndDrawEnemies() {
     if (!e.passed && bird.x > drawX + drawW) {
       e.passed = true;
       score++;
+      pointSound.currentTime = 0; // ✅ 重置音效，避免太快重疊
       pointSound.play();
+      continue; // ✅ 避免同一回合重複判定
     }
 
     // 移除離開畫面的敵人
@@ -464,20 +715,20 @@ playBtn.addEventListener("click", function () {
 
 document.body.appendChild(playBtn);
 
-// const helpText = document.createElement("p");
-// helpText.innerHTML =
-//   "手機請點擊螢幕讓主角跳躍<br /><br />電腦請點擊空白鍵或滑鼠左鍵";
-// helpText.style.position = "absolute";
-// helpText.style.left = "50%";
-// helpText.style.top = "75%";
-// helpText.style.transform = "translate(-50%, -50%)";
-// document.body.appendChild(helpText);
-
 setInterval(() => {
   if (running) addEnemy();
 }, 4000);
 
+let lastTime = performance.now();
+let delta;
+
 const gameLoop = function () {
+  const now = performance.now();
+  delta = (now - lastTime) / 16.67; // 相對於 60FPS 的倍率
+  lastTime = now;
+  console.log("delta:", delta);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
   if (enemies.length < 1) {
     addEnemy();
   }
@@ -507,6 +758,15 @@ const gameLoop = function () {
   } else if (bird.y < 0) {
     bird.y = 0;
     bird.speed = 0;
+  }
+
+  if (running) {
+    bird.update(delta);
+    bird.draw();
+    updateAndDrawEnemies(delta);
+    ground.update(delta);
+    ground.draw();
+    scoreElement.textContent = score;
   }
 
   requestAnimationFrame(gameLoop);
