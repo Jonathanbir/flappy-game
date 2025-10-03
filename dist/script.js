@@ -4,19 +4,27 @@ const groundHeight = 30;
 let birdImageframe = 0;
 const flapInterval = 50;
 const birdGravity = 0.2;
-const birdJump = -4.6;
 const pipes = [];
 const pipeWidth = 52;
 
 // 敵人設定
 const enemies = [];
 const enemySize = 80; // 寬高一樣
+
+let birdJump;
+
+if (window.matchMedia("(max-width: 750px)").matches) {
+  birdJump = -4.6;
+} else {
+  birdJump = -3.5;
+}
+
 let enemySpeed;
 
 if (window.matchMedia("(max-width: 750px)").matches) {
   enemySpeed = 1.3;
 } else {
-  enemySpeed = 1;
+  enemySpeed = 0.8;
 }
 
 const minGap = 210;
@@ -279,8 +287,8 @@ if (window.matchMedia("(max-width: 480px)").matches) {
   bird = {
     x: 50,
     y: canvas.height / 2,
-    width: 40,
-    height: 40,
+    width: 60,
+    height: 60,
     speed: 0,
     gravity: birdGravity,
     jump: birdJump,
@@ -652,7 +660,11 @@ function updateAndDrawEnemies() {
     // 通過後加分
     if (!e.passed && bird.x > drawX + drawW) {
       e.passed = true;
-      score++;
+      if (e.type === "bird") {
+        score += 2; // 🐦 敵方鳥加 2 分
+      } else if (e.type === "dragon") {
+        score += 1; // 🐉 龍加 1 分
+      }
       pointSound.currentTime = 0; // ✅ 重置音效，避免太快重疊
       pointSound.play();
       continue; // ✅ 避免同一回合重複判定
@@ -696,10 +708,16 @@ document.addEventListener("keydown", function (event) {
   }
 });
 
+const ruleImg = document.createElement("div");
+ruleImg.className = "game-rule";
+
+document.body.appendChild(ruleImg);
+
 const playBtn = document.createElement("button");
 playBtn.className = "play-btn";
 playBtn.addEventListener("click", function () {
   document.body.removeChild(playBtn);
+  document.body.removeChild(ruleImg);
   // document.body.removeChild(helpText);
   startBg.style.display = "none";
   running = true;
